@@ -1,48 +1,40 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const mongoose = require("mongoose");
-require("dotenv").config();
+const express = require('express');
+const { MongoClient } = require('mongodb');
+require('dotenv').config(); // This helps load environment variables
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }, // Allow all origins for simplicity
+const port = process.env.PORT || 5000;
+
+// MongoDB connection URI from environment variable
+const uri = process.env.MONGO_URI;
+
+async function connectToDatabase() {
+  try {
+    // Create a new MongoClient and connect to the database
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await client.connect();
+
+    console.log("Connected to MongoDB!");
+
+    // Access a specific database (e.g., temp-share)
+    const database = client.db('temp-share');
+    const collection = database.collection('sessions'); // Example collection
+
+    // Example: Insert a new document to test
+    await collection.insertOne({ sessionId: 'test123', content: 'This is a test session' });
+
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error);
+  }
+}
+
+connectToDatabase();
+
+// Sample route
+app.get('/', (req, res) => {
+  res.send('Hello from your backend!');
 });
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-
-const sessionSchema = new mongoose.Schema({
-    url: { type: String, unique: true, required: true },
-    text: { type: String, default: "" },
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
-
-const Session = mongoose.model("Session", sessionSchema);
-
-app.get("/session/:url", async (req, res) => {
-    const { url } = req.params;
-    let session = await Session.findOne({ url });
-    if (!session) {
-        session = new Session({ url });
-        await session.save();
-    }
-    res.status(200).json(session);
-});
-
-io.on("connection", (socket) => {
-    socket.on("join", (url) => {
-        socket.join(url);
-    });
-
-    socket.on("update-text", async ({ url, text }) => {
-        const session = await Session.findOne({ url });
-        if (session) {
-            session.text = text;
-            await session.save();
-        }
-        io.to(url).emit("text-updated", text);
-    });
-});
-
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
