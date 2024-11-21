@@ -22,7 +22,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     console.log('MongoDB connected successfully!');
   })
   .catch((err) => {
-    console.error('Error connecting to MongoDB:', err);
+    console.error('MongoDB connection error:', err);
   });
 
 // Root route
