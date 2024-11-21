@@ -4,24 +4,28 @@ const dotenv = require('dotenv');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Load environment variables
+// Load environment variables from .env file
 dotenv.config();
 
-// Middleware to parse JSON
+// Middleware to parse incoming request bodies as JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB using the connection string from the environment variables
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URI, { 
+  useNewUrlParser: true, 
+  useUnifiedTopology: true 
+})
   .then(() => console.log('MongoDB Connected'))
   .catch((err) => console.log('MongoDB connection error:', err));
 
 // Define a Mongoose schema and model for storing code
 const codeSchema = new mongoose.Schema({
-  url: String,
-  code: String,
+  url: { type: String, required: true, unique: true }, // Ensure the URL is unique
+  code: { type: String, required: true },
   createdAt: { type: Date, default: Date.now, expires: 86400 } // Expires after 24 hours
 });
+
 const Code = mongoose.model('Code', codeSchema);
 
 // Route to get code by URL
