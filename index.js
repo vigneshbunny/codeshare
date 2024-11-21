@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // MongoDB model for storing the code
 const codeSchema = new mongoose.Schema({
+  _id: { type: String, required: true }, // Use String for the custom URL
   code: { type: String, required: true },
   createdAt: { type: Date, default: Date.now, expires: '24h' }, // expires in 24 hours
 });
@@ -34,7 +35,7 @@ mongoose
 
 // Main page route
 app.get('/', (req, res) => {
-  res.send("Let's get started!");
+  res.send("Let's get starteddddd!");
 });
 
 // Custom URL route to display existing code or provide a form for new code
@@ -61,7 +62,7 @@ app.get('/:customURL', async (req, res) => {
     }
   } catch (error) {
     console.error('Error fetching code:', error);
-    res.status(500).send('Internal Server Errorrrrrr');
+    res.status(500).send('Internal Server Errrrror');
   }
 });
 
@@ -77,7 +78,7 @@ app.post('/:customURL', async (req, res) => {
   try {
     // Save the code to the database with the custom URL as the ID
     const newCode = new Code({
-      _id: customURL,
+      _id: customURL, // Store the custom URL as the _id (string)
       code,
     });
 
