@@ -1,80 +1,67 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const bodyParser = require('body-parser');
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Initialize environment variables
+// Load environment variables
 dotenv.config();
 
-// Initialize the Express app
-const app = express();
+// Middleware to parse JSON and URL-encoded data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Middleware to parse JSON request bodies
-app.use(bodyParser.json());
+// Connect to MongoDB using the connection string from environment variables
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB Connected'))
+  .catch((err) => console.log('MongoDB connection error:', err));
 
-// MongoDB connection string from environment variables
-const mongoURI = process.env.MONGO_URI;
-
-// MongoDB connection
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('MongoDB connection is successful!');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
-  });
-
-// Define a simple schema and model for users
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: String,
+// Define a Mongoose schema and model for storing code with a custom URL
+const codeSchema = new mongoose.Schema({
+  url: { type: String, required: true, unique: true },
+  code: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now, expires: 86400 } // Expires after 24 hours
 });
+const Code = mongoose.model('Code', codeSchema);
 
-const User = mongoose.model('User', userSchema);
-
-// Home Route (GET)
-app.get('/', (req, res) => {
-  res.send('Hello, World! MongoDB connection is successful!');
-});
-
-// API Route (GET) - Simple route
-app.get('/api', (req, res) => {
-  res.json({ message: 'API is working!' });
-});
-
-// Custom route for /hiiii
-app.get('/hiiii', (req, res) => {
-  res.send('You have reached the /hiiii route!');
-});
-
-// API Route (GET) - Fetch all users
-app.get('/api/users', async (req, res) => {
+// Route to get code by custom URL
+app.get('/:url', async (req, res) => {
   try {
-    const users = await User.find(); // Retrieve all users from the database
-    res.json({ users });
-  } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).send('Error fetching users');
+    const code = await Code.findOne({ url: req.params.url });
+    if (code) {
+      res.json({ code: code.code });
+    } else {
+      res.status(404).json({ message: 'Code not found or expired' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error retrieving code' });
   }
 });
 
-// Add User Route (POST) - Create a new user
-app.post('/api/users', async (req, res) => {
-  const { name, email } = req.body;
+// Route to upload code to a custom URL
+app.post('/:url', async (req, res) => {
+  const { code } = req.body;
   try {
-    const newUser = new User({ name, email });
-    await newUser.save();
-    res.json({ message: 'User added successfully!', user: newUser });
-  } catch (err) {
-    console.error('Error adding user:', err);
-    res.status(500).send('Error adding user');
+    const existingCode = await Code.findOne({ url: req.params.url });
+    if (existingCode) {
+      // If code already exists for this URL, update it
+      existingCode.code = code;
+      await existingCode.save();
+    } else {
+      // If code doesn't exist, create a new entry
+      const newCode = new Code({
+        url: req.params.url,
+        code
+      });
+      await newCode.save();
+    }
+    res.status(200).json({ message: 'Code uploaded successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error uploading code' });
   }
 });
-
-// Set the port from environment variable or default to 5000
-const PORT = process.env.PORT || 5000;
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
