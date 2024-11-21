@@ -37,17 +37,19 @@ app.get('/', (req, res) => {
   res.send("Let's get started!");
 });
 
-// Custom URL route
+// Custom URL route to display existing code or provide a form for new code
 app.get('/:customURL', async (req, res) => {
   const customURL = req.params.customURL;
 
   try {
-    // Find the code for the given custom URL
+    // Look for code already saved for the given custom URL
     const foundCode = await Code.findOne({ _id: customURL });
 
     if (foundCode) {
+      // If code exists, display it
       res.send(`<h1>Code for URL: ${customURL}</h1><pre>${foundCode.code}</pre>`);
     } else {
+      // If no code found, show a form to upload code
       res.send(`
         <h1>No code found for this URL!</h1>
         <p>You can submit your own code here:</p>
@@ -63,10 +65,14 @@ app.get('/:customURL', async (req, res) => {
   }
 });
 
-// Handle POST request to save code
+// Handle POST request to save new code
 app.post('/:customURL', async (req, res) => {
   const customURL = req.params.customURL;
   const { code } = req.body;
+
+  if (!code) {
+    return res.status(400).send('Code cannot be empty');
+  }
 
   try {
     // Save the code to the database with the custom URL as the ID
@@ -76,6 +82,7 @@ app.post('/:customURL', async (req, res) => {
     });
 
     await newCode.save();
+
     res.send(`<h1>Code successfully uploaded!</h1><p>Your code is now accessible at: <a href="/${customURL}">${customURL}</a></p>`);
   } catch (error) {
     console.error('Error saving code:', error);
