@@ -61,7 +61,7 @@ app.get('/:customURL', async (req, res) => {
     }
   } catch (error) {
     console.error('Error fetching code:', error);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send('Internal Server Errorrrrrr');
   }
 });
 
@@ -86,7 +86,7 @@ app.post('/:customURL', async (req, res) => {
     res.send(`<h1>Code successfully uploaded!</h1><p>Your code is now accessible at: <a href="/${customURL}">${customURL}</a></p>`);
   } catch (error) {
     console.error('Error saving code:', error);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send('Internal Server Errorrrrr');
   }
 });
 
